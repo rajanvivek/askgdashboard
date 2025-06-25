@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ask Gurudev Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .date-picker {
+            background: #f8f9fa;
+            padding: 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .date-form {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input {
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 20px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .dashboard {
+            padding: 30px;
+            display: none;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .stat-card h3 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .stat-card p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .chart-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .chart-container {
+            height: 400px;
+            position: relative;
+        }
+        
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        
+        .table-section {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-section h2 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .frequency-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .date-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Ask Gurudev Analytics Dashboard</h1>
+            <p>Track Ask Gurudev insights across different date ranges</p>
+        </div>
+
+        <div class="date-picker">
+            <form class="date-form" id="dateForm">
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" name="startDate" required />
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" name="endDate" required />
+                </div>
+                <button type="submit" class="submit-btn" id="submitBtn">
+            Get Analytics
+          </button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Fetching analytics data...</p>
+        </div>
+
+        <div class="dashboard" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="totalQuestions">-</h3>
+                    <p>Total Questions</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="avgQuestions">-</h3>
+                    <p>Average Questions/Day</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalDays">-</h3>
+                    <p>Total Days</p>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2>Daily Questions Breakdown</h2>
+                <div class="chart-container" id="chartContainer"></div>
+            </div>
+
+            <div class="tables-grid">
+                <div class="table-section">
+                    <h2>Top Questions</h2>
+                    <div class="table-container">
+                        <table id="questionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Question</th>
+                                    <th>Frequency</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="table-section">
+                    <h2>Top Categories</h2>
+                    <div class="table-container">
+                        <table id="categoriesTable">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Frequency</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AnalyticsDashboard {
+            constructor() {
+                this.apiUrl =
+                    "https://us-central1-askgurudev-rel-0-1.cloudfunctions.net/askg-stats-function";
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.setDefaultDates();
+            }
+
+            setupEventListeners() {
+                const form = document.getElementById("dateForm");
+                form.addEventListener("submit", (e) => this.handleSubmit(e));
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const twoWeeksAgo = new Date(
+                    today.getTime() - 14 * 24 * 60 * 60 * 1000
+                );
+
+                document.getElementById("startDate").value =
+                    this.formatDate(twoWeeksAgo);
+                document.getElementById("endDate").value = this.formatDate(today);
+            }
+
+            formatDate(date) {
+                return date.toISOString().split("T")[0];
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+
+                const startDate = document.getElementById("startDate").value;
+                const endDate = document.getElementById("endDate").value;
+
+                if (!startDate || !endDate) {
+                    this.showError("Please select both start and end dates");
+                    return;
+                }
+
+                if (new Date(startDate) > new Date(endDate)) {
+                    this.showError("Start date cannot be after end date");
+                    return;
+                }
+
+                this.showLoading(true);
+                this.hideError();
+
+                try {
+                    const data = await this.fetchAnalytics(startDate, endDate);
+                    this.displayDashboard(data);
+                } catch (error) {
+                    this.showError("Failed to fetch analytics data. Please try again.");
+                    console.error("Error:", error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async fetchAnalytics(startDate, endDate) {
+                const url = `${this.apiUrl}?start_date=${startDate}&end_date=${endDate}`;
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error("API returned unsuccessful response");
+                }
+
+                return result.data;
+            }
+
+            displayDashboard(data) {
+                this.updateStats(data);
+                this.populateTables(data);
+                this.showDashboard();
+
+                // Small delay to ensure container is properly sized before creating chart
+                setTimeout(() => {
+                    this.createChart(data.daily_analysis.daily_breakdown);
+                }, 100);
+            }
+
+            updateStats(data) {
+                document.getElementById("totalQuestions").textContent =
+                    data.daily_analysis.total_questions;
+                document.getElementById("avgQuestions").textContent =
+                    data.daily_analysis.average_daily_questions.toFixed(1);
+                document.getElementById("totalDays").textContent =
+                    data.date_range.total_days;
+            }
+
+            createChart(dailyBreakdown) {
+                const container = document.getElementById("chartContainer");
+                container.innerHTML = "";
+
+                const dates = Object.keys(dailyBreakdown).sort();
+                const values = dates.map((date) => dailyBreakdown[date]);
+                const maxValue = Math.max(...values);
+
+                const chartHeight = 350;
+                const containerWidth = container.clientWidth || 800;
+                const margin = {
+                    top: 20,
+                    right: 30,
+                    bottom: 60,
+                    left: 60,
+                };
+                const chartWidth = containerWidth - margin.left - margin.right;
+                const chartHeightInner = chartHeight - margin.top - margin.bottom;
+
+                const svg = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "svg"
+                );
+                svg.setAttribute("width", containerWidth);
+                svg.setAttribute("height", chartHeight);
+                svg.style.overflow = "visible";
+
+                // Create chart group
+                const chartGroup = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "g"
+                );
+                chartGroup.setAttribute(
+                    "transform",
+                    `translate(${margin.left}, ${margin.top})`
+                );
+
+                // Calculate scales
+                const xScale = chartWidth / (dates.length - 1);
+                const yScale = chartHeightInner / maxValue;
+
+                // Create Y-axis
+                const yAxis = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "line"
+                );
+                yAxis.setAttribute("x1", 0);
+                yAxis.setAttribute("y1", 0);
+                yAxis.setAttribute("x2", 0);
+                yAxis.setAttribute("y2", chartHeightInner);
+                yAxis.setAttribute("stroke", "#e9ecef");
+                yAxis.setAttribute("stroke-width", 2);
+
+                // Create X-axis
+                const xAxis = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "line"
+                );
+                xAxis.setAttribute("x1", 0);
+                xAxis.setAttribute("y1", chartHeightInner);
+                xAxis.setAttribute("x2", chartWidth);
+                xAxis.setAttribute("y2", chartHeightInner);
+                xAxis.setAttribute("stroke", "#e9ecef");
+                xAxis.setAttribute("stroke-width", 2);
+
+                // Add Y-axis ticks and labels
+                const yTicks = 5;
+                for (let i = 0; i <= yTicks; i++) {
+                    const y = chartHeightInner - (i * chartHeightInner) / yTicks;
+                    const value = Math.round((i * maxValue) / yTicks);
+
+                    // Tick line
+                    const tick = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "line"
+                    );
+                    tick.setAttribute("x1", -5);
+                    tick.setAttribute("y1", y);
+                    tick.setAttribute("x2", 0);
+                    tick.setAttribute("y2", y);
+                    tick.setAttribute("stroke", "#e9ecef");
+                    tick.setAttribute("stroke-width", 1);
+
+                    // Tick label
+                    const tickLabel = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "text"
+                    );
+                    tickLabel.setAttribute("x", -10);
+                    tickLabel.setAttribute("y", y + 4);
+                    tickLabel.setAttribute("text-anchor", "end");
+                    tickLabel.setAttribute("font-size", "12");
+                    tickLabel.setAttribute("fill", "#6c757d");
+                    tickLabel.textContent = value;
+
+                    chartGroup.appendChild(tick);
+                    chartGroup.appendChild(tickLabel);
+                }
+
+                // Add X-axis date labels with smart skipping
+                const maxLabels = Math.floor(chartWidth / 80); // Approximate space needed per label
+                const skipInterval = Math.max(1, Math.ceil(dates.length / maxLabels));
+
+                dates.forEach((date, index) => {
+                    const x = index * xScale;
+
+                    // Only show labels at skip intervals or for the last date
+                    if (index % skipInterval === 0 || index === dates.length - 1) {
+                        const dateLabel = document.createElementNS(
+                            "http://www.w3.org/2000/svg",
+                            "text"
+                        );
+                        dateLabel.setAttribute("x", x);
+                        dateLabel.setAttribute("y", chartHeightInner + 20);
+                        dateLabel.setAttribute("text-anchor", "middle");
+                        dateLabel.setAttribute("font-size", "11");
+                        dateLabel.setAttribute("fill", "#6c757d");
+                        dateLabel.setAttribute(
+                            "transform",
+                            `rotate(-45, ${x}, ${chartHeightInner + 20})`
+                        );
+                        dateLabel.textContent = new Date(date).toLocaleDateString(
+                            "en-US", {
+                                month: "short",
+                                day: "numeric",
+                            }
+                        );
+
+                        chartGroup.appendChild(dateLabel);
+                    }
+
+                    // Add vertical grid lines
+                    const gridLine = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "line"
+                    );
+                    gridLine.setAttribute("x1", x);
+                    gridLine.setAttribute("y1", 0);
+                    gridLine.setAttribute("x2", x);
+                    gridLine.setAttribute("y2", chartHeightInner);
+                    gridLine.setAttribute("stroke", "#f8f9fa");
+                    gridLine.setAttribute("stroke-width", 1);
+                    gridLine.setAttribute("stroke-dasharray", "2,2");
+
+                    chartGroup.appendChild(gridLine);
+                });
+
+                // Create the line path
+                const linePath = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "path"
+                );
+                let pathData = "M ";
+
+                dates.forEach((date, index) => {
+                    const x = index * xScale;
+                    const y = chartHeightInner - dailyBreakdown[date] * yScale;
+                    pathData += `${x},${y} `;
+                });
+
+                linePath.setAttribute("d", pathData);
+                linePath.setAttribute("fill", "none");
+                linePath.setAttribute("stroke", "url(#lineGradient)");
+                linePath.setAttribute("stroke-width", 3);
+                linePath.setAttribute("stroke-linecap", "round");
+                linePath.setAttribute("stroke-linejoin", "round");
+
+                // Create data points
+                dates.forEach((date, index) => {
+                    const x = index * xScale;
+                    const y = chartHeightInner - dailyBreakdown[date] * yScale;
+                    const value = dailyBreakdown[date];
+
+                    // Create circle for data point
+                    const circle = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "circle"
+                    );
+                    circle.setAttribute("cx", x);
+                    circle.setAttribute("cy", y);
+                    circle.setAttribute("r", 4);
+                    circle.setAttribute("fill", value === 0 ? "#e9ecef" : "#667eea");
+                    circle.setAttribute("stroke", "white");
+                    circle.setAttribute("stroke-width", 2);
+
+                    // Add hover effect
+                    circle.addEventListener("mouseenter", () => {
+                        circle.setAttribute("r", 6);
+                        circle.setAttribute("fill", "#764ba2");
+                    });
+                    circle.addEventListener("mouseleave", () => {
+                        circle.setAttribute("r", 4);
+                        circle.setAttribute("fill", value === 0 ? "#e9ecef" : "#667eea");
+                    });
+
+                    // Add value tooltip on hover
+                    circle.addEventListener("mouseenter", () => {
+                        const tooltip = document.createElementNS(
+                            "http://www.w3.org/2000/svg",
+                            "text"
+                        );
+                        tooltip.setAttribute("x", x);
+                        tooltip.setAttribute("y", y - 15);
+                        tooltip.setAttribute("text-anchor", "middle");
+                        tooltip.setAttribute("font-size", "12");
+                        tooltip.setAttribute("fill", "#495057");
+                        tooltip.setAttribute("font-weight", "bold");
+                        tooltip.textContent = `${new Date(date).toLocaleDateString(
+                "en-US",
+                { month: "short", day: "numeric" }
+              )}: ${value} questions`;
+                        tooltip.id = "tooltip";
+                        chartGroup.appendChild(tooltip);
+                    });
+                    circle.addEventListener("mouseleave", () => {
+                        const tooltip = document.getElementById("tooltip");
+                        if (tooltip) tooltip.remove();
+                    });
+
+                    chartGroup.appendChild(circle);
+                });
+
+                // Add gradient definition for the line
+                const defs = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "defs"
+                );
+                const lineGradient = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "linearGradient"
+                );
+                lineGradient.setAttribute("id", "lineGradient");
+                lineGradient.setAttribute("x1", "0%");
+                lineGradient.setAttribute("y1", "0%");
+                lineGradient.setAttribute("x2", "100%");
+                lineGradient.setAttribute("y2", "0%");
+
+                const stop1 = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "stop"
+                );
+                stop1.setAttribute("offset", "0%");
+                stop1.setAttribute("stop-color", "#667eea");
+
+                const stop2 = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "stop"
+                );
+                stop2.setAttribute("offset", "100%");
+                stop2.setAttribute("stop-color", "#764ba2");
+
+                lineGradient.appendChild(stop1);
+                lineGradient.appendChild(stop2);
+                defs.appendChild(lineGradient);
+                svg.appendChild(defs);
+
+                // Add chart elements to group
+                chartGroup.appendChild(yAxis);
+                chartGroup.appendChild(xAxis);
+                chartGroup.appendChild(linePath);
+
+                // Add chart group to SVG
+                svg.appendChild(chartGroup);
+
+                container.appendChild(svg);
+            }
+
+            populateTables(data) {
+                this.populateQuestionsTable(data.top_questions);
+                this.populateCategoriesTable(data.top_categories);
+            }
+
+            populateQuestionsTable(questions) {
+                const tbody = document.querySelector("#questionsTable tbody");
+                tbody.innerHTML = "";
+
+                questions.forEach((item) => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${item.question}</td>
+                        <td><span class="frequency-badge">${item.frequency}</span></td>
+                    `;
+                });
+            }
+
+            populateCategoriesTable(categories) {
+                const tbody = document.querySelector("#categoriesTable tbody");
+                tbody.innerHTML = "";
+
+                categories.forEach((item) => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${item.category}</td>
+                        <td><span class="frequency-badge">${item.frequency}</span></td>
+                    `;
+                });
+            }
+
+            showDashboard() {
+                document.getElementById("dashboard").style.display = "block";
+            }
+
+            showLoading(show) {
+                document.getElementById("loading").style.display = show ?
+                    "block" :
+                    "none";
+                document.getElementById("submitBtn").disabled = show;
+            }
+
+            showError(message) {
+                this.hideError();
+                const errorDiv = document.createElement("div");
+                errorDiv.className = "error";
+                errorDiv.textContent = message;
+                errorDiv.id = "errorMessage";
+
+                const datePicker = document.querySelector(".date-picker");
+                datePicker.appendChild(errorDiv);
+            }
+
+            hideError() {
+                const existingError = document.getElementById("errorMessage");
+                if (existingError) {
+                    existingError.remove();
+                }
+            }
+        }
+
+        // Initialize the dashboard when the page loads
+        document.addEventListener("DOMContentLoaded", () => {
+            new AnalyticsDashboard();
+        });
+    </script>
+</body>
+
+</html>
