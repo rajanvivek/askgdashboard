@@ -54,8 +54,25 @@
         
         .date-form {
             display: flex;
+            flex-direction: row;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .form-content {
+            display: flex;
+            flex-direction: column;
             gap: 20px;
             align-items: center;
+            min-width: 300px;
+        }
+        
+        .date-inputs-group {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -95,7 +112,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s ease;
-            margin-top: 20px;
+            align-self: center;
         }
         
         .submit-btn:hover {
@@ -106,6 +123,29 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            gap: 8px;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
         }
         
         .loading {
@@ -173,15 +213,51 @@
             margin-bottom: 30px;
         }
         
-        .chart-section h2 {
-            color: #495057;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
+        .section-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            margin: -30px -30px 20px -30px;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
         }
         
         .chart-container {
             height: 400px;
             position: relative;
+        }
+        
+        .word-cloud-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .word-cloud-container {
+            height: 500px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+        
+        .word-cloud-word {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .word-cloud-word:hover {
+            transform: scale(1.1);
+            z-index: 10;
         }
         
         .tables-grid {
@@ -252,7 +328,23 @@
         @media (max-width: 768px) {
             .date-form {
                 flex-direction: column;
-                align-items: stretch;
+                align-items: center;
+                gap: 20px;
+            }
+            .form-content {
+                align-items: center;
+                min-width: auto;
+                width: 100%;
+            }
+            .date-inputs-group {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+                width: 100%;
+            }
+            .form-group {
+                width: 100%;
+                max-width: 300px;
             }
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -273,13 +365,28 @@
 
         <div class="date-picker">
             <form class="date-form" id="dateForm">
-                <div class="form-group">
-                    <label for="startDate">Start Date</label>
-                    <input type="date" id="startDate" name="startDate" required />
-                </div>
-                <div class="form-group">
-                    <label for="endDate">End Date</label>
-                    <input type="date" id="endDate" name="endDate" required />
+                <div class="form-content">
+                    <div class="date-inputs-group">
+                        <div class="form-group">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" id="startDate" name="startDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date</label>
+                            <input type="date" id="endDate" name="endDate" required />
+                        </div>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  id="generateWordCloud"
+                  name="generateWordCloud"
+                />
+                <span class="checkmark"></span>
+                Generate Word Cloud
+              </label>
+                    </div>
                 </div>
                 <button type="submit" class="submit-btn" id="submitBtn">
             Get Analytics
@@ -309,8 +416,17 @@
             </div>
 
             <div class="chart-section">
-                <h2>Daily Questions Breakdown</h2>
+                <div class="section-header">
+                    <h2>Daily Questions Breakdown</h2>
+                </div>
                 <div class="chart-container" id="chartContainer"></div>
+            </div>
+
+            <div class="word-cloud-section" id="wordCloudSection" style="display: none">
+                <div class="section-header">
+                    <h2>Word Cloud</h2>
+                </div>
+                <div class="word-cloud-container" id="wordCloudContainer"></div>
             </div>
 
             <div class="tables-grid">
@@ -364,13 +480,16 @@
                 const form = document.getElementById("dateForm");
                 form.addEventListener("submit", (e) => this.handleSubmit(e));
 
-                // Add resize listener for responsive chart with debounce
+                // Add resize listener for responsive chart and word cloud with debounce
                 let resizeTimeout;
                 window.addEventListener("resize", () => {
                     clearTimeout(resizeTimeout);
                     resizeTimeout = setTimeout(() => {
                         if (this.currentChartData) {
                             this.createChart(this.currentChartData);
+                        }
+                        if (this.currentWordCloudData) {
+                            this.createWordCloud(this.currentWordCloudData);
                         }
                     }, 250); // Debounce for 250ms
                 });
@@ -422,7 +541,13 @@
             }
 
             async fetchAnalytics(startDate, endDate) {
-                const url = `${this.apiUrl}?start_date=${startDate}&end_date=${endDate}`;
+                const generateWordCloud =
+                    document.getElementById("generateWordCloud").checked;
+                let url = `${this.apiUrl}?start_date=${startDate}&end_date=${endDate}`;
+
+                if (generateWordCloud) {
+                    url += "&generate_word_cloud=true";
+                }
 
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -450,6 +575,16 @@
                 setTimeout(() => {
                     this.createChart(this.currentChartData);
                 }, 100);
+
+                // Handle word cloud if data is available
+                if (data.word_cloud_data && data.word_cloud_data.length > 0) {
+                    this.currentWordCloudData = data.word_cloud_data;
+                    this.createWordCloud(this.currentWordCloudData);
+                    document.getElementById("wordCloudSection").style.display = "block";
+                } else {
+                    this.currentWordCloudData = null;
+                    document.getElementById("wordCloudSection").style.display = "none";
+                }
             }
 
             updateStats(data) {
@@ -559,6 +694,36 @@
                     chartGroup.appendChild(tick);
                     chartGroup.appendChild(tickLabel);
                 }
+
+                // Add Y-axis label
+                const yAxisLabel = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "text"
+                );
+                yAxisLabel.setAttribute("x", -30);
+                yAxisLabel.setAttribute("y", chartHeightInner / 2);
+                yAxisLabel.setAttribute("text-anchor", "middle");
+                yAxisLabel.setAttribute("font-size", "14");
+                yAxisLabel.setAttribute("font-weight", "600");
+                yAxisLabel.setAttribute("fill", "#495057");
+                yAxisLabel.setAttribute(
+                    "transform",
+                    `rotate(-90, -30, ${chartHeightInner / 2})`
+                );
+                yAxisLabel.textContent = "Number of Questions";
+
+                // Add X-axis label
+                const xAxisLabel = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "text"
+                );
+                xAxisLabel.setAttribute("x", chartWidth / 2);
+                xAxisLabel.setAttribute("y", chartHeightInner + 50);
+                xAxisLabel.setAttribute("text-anchor", "middle");
+                xAxisLabel.setAttribute("font-size", "14");
+                xAxisLabel.setAttribute("font-weight", "600");
+                xAxisLabel.setAttribute("fill", "#495057");
+                xAxisLabel.textContent = "Date";
 
                 // Add X-axis date labels with smart skipping
                 const maxLabels = Math.floor(chartWidth / 80); // Approximate space needed per label
@@ -720,12 +885,222 @@
                 // Add chart elements to group
                 chartGroup.appendChild(yAxis);
                 chartGroup.appendChild(xAxis);
+                chartGroup.appendChild(yAxisLabel);
+                chartGroup.appendChild(xAxisLabel);
                 chartGroup.appendChild(linePath);
 
                 // Add chart group to SVG
                 svg.appendChild(chartGroup);
 
                 container.appendChild(svg);
+            }
+
+            createWordCloud(wordCloudData) {
+                const container = document.getElementById("wordCloudContainer");
+                container.innerHTML = "";
+
+                if (!wordCloudData || wordCloudData.length === 0) {
+                    return;
+                }
+
+                // Get container dimensions
+                const containerWidth = container.clientWidth || 800;
+                const containerHeight = container.clientHeight || 500;
+                const centerX = containerWidth / 2;
+                const centerY = containerHeight / 2;
+
+                // Find min and max frequencies for scaling
+                const frequencies = wordCloudData.map((item) => item.frequency);
+                const minFreq = Math.min(...frequencies);
+                const maxFreq = Math.max(...frequencies);
+
+                // Color palette
+                const colors = [
+                    "#667eea",
+                    "#764ba2",
+                    "#4facfe",
+                    "#00f2fe",
+                    "#667eea",
+                    "#764ba2",
+                    "#4facfe",
+                    "#00f2fe",
+                ];
+
+                // Sort words by frequency (highest first)
+                const sortedWords = [...wordCloudData].sort(
+                    (a, b) => b.frequency - a.frequency
+                );
+
+                // Track placed words to avoid overlap
+                const placedWords = [];
+
+                // Function to check if a position is available
+                function isPositionAvailable(x, y, width, height) {
+                    const padding = 5; // Minimum space between words
+
+                    for (const placed of placedWords) {
+                        const distanceX = Math.abs(x - placed.x);
+                        const distanceY = Math.abs(y - placed.y);
+
+                        // Check if rectangles overlap
+                        if (
+                            distanceX < (width + placed.width) / 2 + padding &&
+                            distanceY < (height + placed.height) / 2 + padding
+                        ) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                // Function to find a valid position for a word
+                function findValidPosition(width, height) {
+                    const maxAttempts = 100;
+                    let attempts = 0;
+
+                    while (attempts < maxAttempts) {
+                        // Try different positioning strategies
+                        let x, y;
+
+                        if (attempts < 30) {
+                            // Start from center and spiral out
+                            const angle = attempts * 0.5;
+                            const radius = 20 + attempts * 2;
+                            x = centerX + Math.cos(angle) * radius;
+                            y = centerY + Math.sin(angle) * radius;
+                        } else if (attempts < 60) {
+                            // Try random positions
+                            x = Math.random() * (containerWidth - width);
+                            y = Math.random() * (containerHeight - height);
+                        } else {
+                            // Try grid positions
+                            const gridSize = 50;
+                            const gridX = Math.floor(attempts / 10) * gridSize;
+                            const gridY = (attempts % 10) * gridSize;
+                            x = gridX + width / 2;
+                            y = gridY + height / 2;
+                        }
+
+                        // Ensure word stays within container bounds
+                        x = Math.max(width / 2, Math.min(containerWidth - width / 2, x));
+                        y = Math.max(
+                            height / 2,
+                            Math.min(containerHeight - height / 2, y)
+                        );
+
+                        if (isPositionAvailable(x, y, width, height)) {
+                            return {
+                                x,
+                                y,
+                            };
+                        }
+
+                        attempts++;
+                    }
+
+                    // If no position found, place at a random position
+                    return {
+                        x: Math.random() * (containerWidth - width),
+                        y: Math.random() * (containerHeight - height),
+                    };
+                }
+
+                // Create word elements
+                sortedWords.forEach((item, index) => {
+                    const word = item.word;
+                    const frequency = item.frequency;
+
+                    // Calculate font size based on frequency (min 14px, max 60px)
+                    const fontSize =
+                        14 + ((frequency - minFreq) / (maxFreq - minFreq)) * 46;
+
+                    // Calculate color based on frequency
+                    const colorIndex = Math.floor(
+                        ((frequency - minFreq) / (maxFreq - minFreq)) *
+                        (colors.length - 1)
+                    );
+                    const color = colors[colorIndex];
+
+                    // Create temporary element to measure text dimensions
+                    const tempElement = document.createElement("div");
+                    tempElement.style.position = "absolute";
+                    tempElement.style.visibility = "hidden";
+                    tempElement.style.fontSize = `${fontSize}px`;
+                    tempElement.style.fontWeight = "600";
+                    tempElement.style.fontFamily = "inherit";
+                    tempElement.textContent = word;
+                    document.body.appendChild(tempElement);
+
+                    const wordWidth = tempElement.offsetWidth;
+                    const wordHeight = tempElement.offsetHeight;
+                    document.body.removeChild(tempElement);
+
+                    // Find valid position
+                    const position = findValidPosition(wordWidth, wordHeight);
+
+                    // Create word element
+                    const wordElement = document.createElement("div");
+                    wordElement.className = "word-cloud-word";
+                    wordElement.textContent = word;
+                    wordElement.style.fontSize = `${fontSize}px`;
+                    wordElement.style.color = color;
+                    wordElement.style.left = `${position.x}px`;
+                    wordElement.style.top = `${position.y}px`;
+                    wordElement.style.transform = "translate(-50%, -50%)";
+
+                    // Add tooltip with frequency
+                    wordElement.title = `${word}: ${frequency} occurrences`;
+
+                    // Add hover effects for frequency display
+                    wordElement.addEventListener("mouseenter", () => {
+                        // Create or update frequency display
+                        let frequencyDisplay = document.getElementById(
+                            "word-cloud-frequency"
+                        );
+                        if (!frequencyDisplay) {
+                            frequencyDisplay = document.createElement("div");
+                            frequencyDisplay.id = "word-cloud-frequency";
+                            frequencyDisplay.style.cssText = `
+                                position: absolute;
+                                background: rgba(0, 0, 0, 0.8);
+                                color: white;
+                                padding: 8px 12px;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                z-index: 1000;
+                                pointer-events: none;
+                                white-space: nowrap;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                            `;
+                            container.appendChild(frequencyDisplay);
+                        }
+
+                        frequencyDisplay.textContent = `${word}: ${frequency} occurrences`;
+                        frequencyDisplay.style.left = `${position.x + 20}px`;
+                        frequencyDisplay.style.top = `${position.y - 30}px`;
+                        frequencyDisplay.style.display = "block";
+                    });
+
+                    wordElement.addEventListener("mouseleave", () => {
+                        const frequencyDisplay = document.getElementById(
+                            "word-cloud-frequency"
+                        );
+                        if (frequencyDisplay) {
+                            frequencyDisplay.style.display = "none";
+                        }
+                    });
+
+                    // Store placed word dimensions for overlap detection
+                    placedWords.push({
+                        x: position.x,
+                        y: position.y,
+                        width: wordWidth,
+                        height: wordHeight,
+                    });
+
+                    container.appendChild(wordElement);
+                });
             }
 
             populateTables(data) {
