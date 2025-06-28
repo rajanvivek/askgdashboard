@@ -486,88 +486,27 @@
                 let resizeTimeout;
                 let lastWindowWidth = window.innerWidth;
                 let lastWindowHeight = window.innerHeight;
-                let isScrolling = false;
-                let scrollTimeout;
 
-                // Track scroll events to prevent redraws during scrolling
-                window.addEventListener(
-                    "scroll",
-                    () => {
-                        isScrolling = true;
-                        clearTimeout(scrollTimeout);
-                        scrollTimeout = setTimeout(() => {
-                            isScrolling = false;
-                        }, 150); // Consider scrolling finished after 150ms of no scroll
-                    }, {
-                        passive: true,
+                window.addEventListener("resize", () => {
+                    // Only redraw if the window dimensions actually changed
+                    if (
+                        window.innerWidth !== lastWindowWidth ||
+                        window.innerHeight !== lastWindowHeight
+                    ) {
+                        lastWindowWidth = window.innerWidth;
+                        lastWindowHeight = window.innerHeight;
+
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(() => {
+                            if (this.currentChartData) {
+                                this.createChart(this.currentChartData);
+                            }
+                            if (this.currentWordCloudData) {
+                                this.createWordCloud(this.currentWordCloudData);
+                            }
+                        }, 250); // Debounce for 250ms
                     }
-                );
-
-                // iOS Safari specific: Use visual viewport for more accurate detection
-                if (window.visualViewport) {
-                    let lastVisualViewportWidth = window.visualViewport.width;
-                    let lastVisualViewportHeight = window.visualViewport.height;
-
-                    window.visualViewport.addEventListener("resize", () => {
-                        // Don't redraw if currently scrolling
-                        if (isScrolling) {
-                            return;
-                        }
-
-                        const widthDiff = Math.abs(
-                            window.visualViewport.width - lastVisualViewportWidth
-                        );
-                        const heightDiff = Math.abs(
-                            window.visualViewport.height - lastVisualViewportHeight
-                        );
-
-                        // Require at least 20px change for visual viewport (more sensitive)
-                        if (widthDiff > 20 || heightDiff > 20) {
-                            lastVisualViewportWidth = window.visualViewport.width;
-                            lastVisualViewportHeight = window.visualViewport.height;
-
-                            clearTimeout(resizeTimeout);
-                            resizeTimeout = setTimeout(() => {
-                                if (this.currentChartData) {
-                                    this.createChart(this.currentChartData);
-                                }
-                                if (this.currentWordCloudData) {
-                                    this.createWordCloud(this.currentWordCloudData);
-                                }
-                            }, 400); // Longer debounce for visual viewport changes
-                        }
-                    });
-                } else {
-                    // Fallback for browsers without visual viewport support
-                    window.addEventListener("resize", () => {
-                        // Don't redraw if currently scrolling
-                        if (isScrolling) {
-                            return;
-                        }
-
-                        // Only redraw if the window dimensions actually changed significantly
-                        const widthDiff = Math.abs(window.innerWidth - lastWindowWidth);
-                        const heightDiff = Math.abs(
-                            window.innerHeight - lastWindowHeight
-                        );
-
-                        // Require at least 10px change to avoid minor mobile viewport adjustments
-                        if (widthDiff > 10 || heightDiff > 10) {
-                            lastWindowWidth = window.innerWidth;
-                            lastWindowHeight = window.innerHeight;
-
-                            clearTimeout(resizeTimeout);
-                            resizeTimeout = setTimeout(() => {
-                                if (this.currentChartData) {
-                                    this.createChart(this.currentChartData);
-                                }
-                                if (this.currentWordCloudData) {
-                                    this.createWordCloud(this.currentWordCloudData);
-                                }
-                            }, 300); // Increased debounce for mobile
-                        }
-                    });
-                }
+                });
             }
 
             setDefaultDates() {
