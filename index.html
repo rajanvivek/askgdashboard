@@ -668,8 +668,12 @@
                 // Handle word cloud if data is available
                 if (data.word_cloud_data && data.word_cloud_data.length > 0) {
                     this.currentWordCloudData = data.word_cloud_data;
-                    this.createWordCloud(this.currentWordCloudData);
                     document.getElementById("wordCloudSection").style.display = "block";
+
+                    // Longer delay for word cloud to ensure container is fully rendered and sized
+                    setTimeout(() => {
+                        this.createWordCloud(this.currentWordCloudData);
+                    }, 300); // Increased delay for mobile devices
                 } else {
                     this.currentWordCloudData = null;
                     document.getElementById("wordCloudSection").style.display = "none";
@@ -1002,9 +1006,28 @@
                     return;
                 }
 
-                // Get container dimensions
-                const containerWidth = container.clientWidth || 800;
-                const containerHeight = container.clientHeight || 500;
+                // Get container dimensions with fallback and ensure minimum size
+                let containerWidth = container.clientWidth;
+                let containerHeight = container.clientHeight;
+
+                // If container dimensions are not available, wait a bit and try again
+                if (!containerWidth || !containerHeight) {
+                    setTimeout(() => {
+                        this.createWordCloud(wordCloudData);
+                    }, 100);
+                    return;
+                }
+
+                // Ensure minimum dimensions for mobile
+                containerWidth = Math.max(containerWidth, 300);
+                containerHeight = Math.max(containerHeight, 400);
+
+                console.log(
+                    "Word cloud container dimensions:",
+                    containerWidth,
+                    "x",
+                    containerHeight
+                );
 
                 // Find min and max frequencies for scaling
                 const frequencies = wordCloudData.map((item) => item.frequency);
