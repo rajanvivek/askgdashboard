@@ -354,23 +354,6 @@
             .tables-grid {
                 grid-template-columns: 1fr;
             }
-            .word-cloud-container {
-                height: 350px;
-                min-height: 300px;
-            }
-            .chart-container {
-                height: 300px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .word-cloud-container {
-                height: 300px;
-                min-height: 250px;
-            }
-            .chart-container {
-                height: 250px;
-            }
         }
     </style>
 </head>
@@ -1035,31 +1018,15 @@
                     return;
                 }
 
-                // Mobile-specific adjustments for portrait mode
-                const isMobile = window.innerWidth <= 768;
-                const isPortrait = window.innerHeight > window.innerWidth;
-
-                if (isMobile && isPortrait) {
-                    // For mobile portrait, use more conservative dimensions
-                    containerWidth = Math.max(containerWidth, 280);
-                    containerHeight = Math.max(containerHeight, 280);
-                    // Limit height to prevent overflow
-                    containerHeight = Math.min(containerHeight, 350);
-                } else {
-                    // For desktop and landscape, use standard dimensions
-                    containerWidth = Math.max(containerWidth, 300);
-                    containerHeight = Math.max(containerHeight, 400);
-                }
+                // Ensure minimum dimensions for mobile
+                containerWidth = Math.max(containerWidth, 300);
+                containerHeight = Math.max(containerHeight, 400);
 
                 console.log(
                     "Word cloud container dimensions:",
                     containerWidth,
                     "x",
-                    containerHeight,
-                    "Mobile:",
-                    isMobile,
-                    "Portrait:",
-                    isPortrait
+                    containerHeight
                 );
 
                 // Find min and max frequencies for scaling
