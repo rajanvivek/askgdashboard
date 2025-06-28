@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ask Gurudev Analytics Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-cloud@1.2.5/build/d3.layout.cloud.js"></script>
     <style>
         * {
             margin: 0;
@@ -549,18 +551,32 @@
                     url += "&generate_word_cloud=true";
                 }
 
+                console.log("Fetching from URL:", url);
+
                 const response = await fetch(url);
+                console.log("Response status:", response.status);
+                console.log("Response ok:", response.ok);
+
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Response error text:", errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const result = await response.json();
+                console.log("API response:", result);
 
-                if (!result.success) {
-                    throw new Error("API returned unsuccessful response");
+                // Check if the response has the expected structure
+                if (result && result.data) {
+                    return result.data;
+                } else if (result && result.success === false) {
+                    throw new Error(
+                        result.message || "API returned unsuccessful response"
+                    );
+                } else {
+                    // If the response doesn't have the expected structure, return it as is
+                    return result;
                 }
-
-                return result.data;
             }
 
             displayDashboard(data) {
@@ -903,214 +919,94 @@
                     return;
                 }
 
+                // Check if d3-cloud is available
+                if (
+                    typeof d3 === "undefined" ||
+                    typeof d3.layout === "undefined" ||
+                    typeof d3.layout.cloud === "undefined"
+                ) {
+                    console.warn("d3-cloud not available");
+                    return;
+                }
+
                 // Get container dimensions
                 const containerWidth = container.clientWidth || 800;
                 const containerHeight = container.clientHeight || 500;
-                const centerX = containerWidth / 2;
-                const centerY = containerHeight / 2;
 
                 // Find min and max frequencies for scaling
                 const frequencies = wordCloudData.map((item) => item.frequency);
                 const minFreq = Math.min(...frequencies);
                 const maxFreq = Math.max(...frequencies);
 
-                // Heat map color palette (cool to warm) - optimized for readability
-                const heatMapColors = [
-                    "#1f4e79", // Dark blue (lowest frequency)
-                    "#2e5984", // Blue
-                    "#4a90e2", // Medium blue
-                    "#7bb3d3", // Light blue
-                    "#a8d5e5", // Very light blue
-                    "#f7dc6f", // Yellow
-                    "#f39c12", // Orange
-                    "#e67e22", // Dark orange
-                    "#e74c3c", // Red
-                    "#c0392b", // Dark red
-                    "#922b21", // Very dark red (highest frequency)
-                ];
+                // Use D3's default color scheme
+                const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-                // Function to get color based on frequency
-                function getHeatMapColor(frequency) {
-                    const normalizedFreq = (frequency - minFreq) / (maxFreq - minFreq);
-                    const colorIndex = Math.floor(
-                        normalizedFreq * (heatMapColors.length - 1)
+                // Function to get font size based on frequency
+                function getFontSize(frequency) {
+                    const minSize = 14;
+                    const maxSize = 60;
+                    return (
+                        minSize +
+                        ((frequency - minFreq) / (maxFreq - minFreq)) *
+                        (maxSize - minSize)
                     );
-                    return heatMapColors[
-                        Math.min(colorIndex, heatMapColors.length - 1)
-                    ];
                 }
 
-                // Sort words by frequency (highest first)
-                const sortedWords = [...wordCloudData].sort(
-                    (a, b) => b.frequency - a.frequency
-                );
+                // Generate words array from word cloud data
+                const words = wordCloudData.map((item, index) => ({
+                    text: item.word,
+                    size: getFontSize(item.frequency),
+                    frequency: item.frequency,
+                    color: colorScale(index),
+                }));
 
-                // Track placed words to avoid overlap
-                const placedWords = [];
+                // Create word cloud layout
+                const layout = d3.layout
+                    .cloud()
+                    .size([containerWidth, containerHeight])
+                    .words(words)
+                    .padding(5)
+                    .rotate(() => ~~(Math.random() * 2) * 90)
+                    .font("Segoe UI, Tahoma, Geneva, Verdana, sans-serif")
+                    .fontSize((d) => d.size)
+                    .on("end", draw);
 
-                // Function to check if a position is available
-                function isPositionAvailable(x, y, width, height) {
-                    const padding = 5; // Minimum space between words
+                // Start the layout
+                layout.start();
 
-                    for (const placed of placedWords) {
-                        const distanceX = Math.abs(x - placed.x);
-                        const distanceY = Math.abs(y - placed.y);
-
-                        // Check if rectangles overlap
-                        if (
-                            distanceX < (width + placed.width) / 2 + padding &&
-                            distanceY < (height + placed.height) / 2 + padding
-                        ) {
-                            return false;
-                        }
-                    }
-                    return true;
+                function draw(words) {
+                    // Create SVG and add words
+                    d3.select(container)
+                        .append("svg")
+                        .attr("width", layout.size()[0])
+                        .attr("height", layout.size()[1])
+                        .append("g")
+                        .attr(
+                            "transform",
+                            "translate(" +
+                            layout.size()[0] / 2 +
+                            "," +
+                            layout.size()[1] / 2 +
+                            ")"
+                        )
+                        .selectAll("text")
+                        .data(words)
+                        .enter()
+                        .append("text")
+                        .style("font-size", (d) => d.size + "px")
+                        .style(
+                            "font-family",
+                            "Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
+                        )
+                        .style("font-weight", "600")
+                        .style("fill", (d) => d.color)
+                        .attr("text-anchor", "middle")
+                        .attr(
+                            "transform",
+                            (d) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")"
+                        )
+                        .text((d) => d.text);
                 }
-
-                // Function to find a valid position for a word
-                function findValidPosition(width, height) {
-                    const maxAttempts = 100;
-                    let attempts = 0;
-
-                    while (attempts < maxAttempts) {
-                        // Try different positioning strategies
-                        let x, y;
-
-                        if (attempts < 30) {
-                            // Start from center and spiral out
-                            const angle = attempts * 0.5;
-                            const radius = 20 + attempts * 2;
-                            x = centerX + Math.cos(angle) * radius;
-                            y = centerY + Math.sin(angle) * radius;
-                        } else if (attempts < 60) {
-                            // Try random positions
-                            x = Math.random() * (containerWidth - width);
-                            y = Math.random() * (containerHeight - height);
-                        } else {
-                            // Try grid positions
-                            const gridSize = 50;
-                            const gridX = Math.floor(attempts / 10) * gridSize;
-                            const gridY = (attempts % 10) * gridSize;
-                            x = gridX + width / 2;
-                            y = gridY + height / 2;
-                        }
-
-                        // Ensure word stays within container bounds
-                        x = Math.max(width / 2, Math.min(containerWidth - width / 2, x));
-                        y = Math.max(
-                            height / 2,
-                            Math.min(containerHeight - height / 2, y)
-                        );
-
-                        if (isPositionAvailable(x, y, width, height)) {
-                            return {
-                                x,
-                                y,
-                            };
-                        }
-
-                        attempts++;
-                    }
-
-                    // If no position found, place at a random position
-                    return {
-                        x: Math.random() * (containerWidth - width),
-                        y: Math.random() * (containerHeight - height),
-                    };
-                }
-
-                // Create word elements
-                sortedWords.forEach((item, index) => {
-                    const word = item.word;
-                    const frequency = item.frequency;
-
-                    // Calculate font size based on frequency (min 14px, max 60px)
-                    const fontSize =
-                        14 + ((frequency - minFreq) / (maxFreq - minFreq)) * 46;
-
-                    // Calculate color based on frequency
-                    const color = getHeatMapColor(frequency);
-
-                    // Create temporary element to measure text dimensions
-                    const tempElement = document.createElement("div");
-                    tempElement.style.position = "absolute";
-                    tempElement.style.visibility = "hidden";
-                    tempElement.style.fontSize = `${fontSize}px`;
-                    tempElement.style.fontWeight = "600";
-                    tempElement.style.fontFamily = "inherit";
-                    tempElement.textContent = word;
-                    document.body.appendChild(tempElement);
-
-                    const wordWidth = tempElement.offsetWidth;
-                    const wordHeight = tempElement.offsetHeight;
-                    document.body.removeChild(tempElement);
-
-                    // Find valid position
-                    const position = findValidPosition(wordWidth, wordHeight);
-
-                    // Create word element
-                    const wordElement = document.createElement("div");
-                    wordElement.className = "word-cloud-word";
-                    wordElement.textContent = word;
-                    wordElement.style.fontSize = `${fontSize}px`;
-                    wordElement.style.color = color;
-                    wordElement.style.left = `${position.x}px`;
-                    wordElement.style.top = `${position.y}px`;
-                    wordElement.style.transform = "translate(-50%, -50%)";
-
-                    // Add tooltip with frequency
-                    wordElement.title = `${word}: ${frequency} occurrences`;
-
-                    // Add hover effects for frequency display
-                    wordElement.addEventListener("mouseenter", () => {
-                        // Create or update frequency display
-                        let frequencyDisplay = document.getElementById(
-                            "word-cloud-frequency"
-                        );
-                        if (!frequencyDisplay) {
-                            frequencyDisplay = document.createElement("div");
-                            frequencyDisplay.id = "word-cloud-frequency";
-                            frequencyDisplay.style.cssText = `
-                                position: absolute;
-                                background: rgba(0, 0, 0, 0.8);
-                                color: white;
-                                padding: 8px 12px;
-                                border-radius: 6px;
-                                font-size: 14px;
-                                font-weight: 600;
-                                z-index: 1000;
-                                pointer-events: none;
-                                white-space: nowrap;
-                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                            `;
-                            container.appendChild(frequencyDisplay);
-                        }
-
-                        frequencyDisplay.textContent = `${word}: ${frequency} occurrences`;
-                        frequencyDisplay.style.left = `${position.x + 20}px`;
-                        frequencyDisplay.style.top = `${position.y - 30}px`;
-                        frequencyDisplay.style.display = "block";
-                    });
-
-                    wordElement.addEventListener("mouseleave", () => {
-                        const frequencyDisplay = document.getElementById(
-                            "word-cloud-frequency"
-                        );
-                        if (frequencyDisplay) {
-                            frequencyDisplay.style.display = "none";
-                        }
-                    });
-
-                    // Store placed word dimensions for overlap detection
-                    placedWords.push({
-                        x: position.x,
-                        y: position.y,
-                        width: wordWidth,
-                        height: wordHeight,
-                    });
-
-                    container.appendChild(wordElement);
-                });
             }
 
             populateTables(data) {
