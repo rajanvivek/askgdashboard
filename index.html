@@ -470,6 +470,10 @@
             constructor() {
                 this.apiUrl =
                     "https://us-central1-askgurudev-rel-0-1.cloudfunctions.net/askg-stats-function";
+                this.currentChartData = null;
+                this.currentWordCloudData = null;
+                this.lastContainerWidth = 0;
+                this.lastContainerHeight = 0;
                 this.init();
             }
 
@@ -487,14 +491,34 @@
                 window.addEventListener("resize", () => {
                     clearTimeout(resizeTimeout);
                     resizeTimeout = setTimeout(() => {
-                        if (this.currentChartData) {
-                            this.createChart(this.currentChartData);
-                        }
-                        if (this.currentWordCloudData) {
-                            this.createWordCloud(this.currentWordCloudData);
-                        }
+                        this.handleResize();
                     }, 250); // Debounce for 250ms
                 });
+            }
+
+            handleResize() {
+                const container = document.getElementById("wordCloudContainer");
+                if (!container) return;
+
+                const currentWidth = container.clientWidth;
+                const currentHeight = container.clientHeight;
+
+                // Only redraw if the change is significant (more than 50 pixels)
+                const widthDiff = Math.abs(currentWidth - this.lastContainerWidth);
+                const heightDiff = Math.abs(currentHeight - this.lastContainerHeight);
+
+                if (this.currentChartData) {
+                    this.createChart(this.currentChartData);
+                }
+
+                if (
+                    this.currentWordCloudData &&
+                    (widthDiff > 50 || heightDiff > 50)
+                ) {
+                    this.lastContainerWidth = currentWidth;
+                    this.lastContainerHeight = currentHeight;
+                    this.createWordCloud(this.currentWordCloudData);
+                }
             }
 
             setDefaultDates() {
@@ -595,8 +619,12 @@
                 // Handle word cloud if data is available
                 if (data.word_cloud_data && data.word_cloud_data.length > 0) {
                     this.currentWordCloudData = data.word_cloud_data;
-                    this.createWordCloud(this.currentWordCloudData);
                     document.getElementById("wordCloudSection").style.display = "block";
+
+                    // Use a longer delay for word cloud to ensure container is fully rendered
+                    setTimeout(() => {
+                        this.createWordCloud(this.currentWordCloudData);
+                    }, 300);
                 } else {
                     this.currentWordCloudData = null;
                     document.getElementById("wordCloudSection").style.display = "none";
@@ -929,9 +957,22 @@
                     return;
                 }
 
-                // Get container dimensions
-                const containerWidth = container.clientWidth || 800;
-                const containerHeight = container.clientHeight || 500;
+                // Get container dimensions - ensure we have valid dimensions
+                let containerWidth = container.clientWidth;
+                let containerHeight = container.clientHeight;
+
+                // If container dimensions are 0, it might be hidden, so use fallback
+                if (containerWidth === 0 || containerHeight === 0) {
+                    containerWidth = 800;
+                    containerHeight = 500;
+                    console.warn(
+                        "Container dimensions not available, using fallback values"
+                    );
+                }
+
+                // Store current dimensions for resize comparison
+                this.lastContainerWidth = containerWidth;
+                this.lastContainerHeight = containerHeight;
 
                 // Find min and max frequencies for scaling
                 const frequencies = wordCloudData.map((item) => item.frequency);
@@ -975,6 +1016,9 @@
                 layout.start();
 
                 function draw(words) {
+                    // Clear any existing SVG
+                    d3.select(container).selectAll("svg").remove();
+
                     // Create SVG and add words
                     d3.select(container)
                         .append("svg")
