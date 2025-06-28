@@ -268,7 +268,7 @@
     <div class="container">
         <div class="header">
             <h1>Ask Gurudev Analytics Dashboard</h1>
-            <p>Track Ask Gurudev insights across different date ranges</p>
+            <p>Insights into Ask Gurudev Usage</p>
         </div>
 
         <div class="date-picker">
@@ -363,6 +363,17 @@
             setupEventListeners() {
                 const form = document.getElementById("dateForm");
                 form.addEventListener("submit", (e) => this.handleSubmit(e));
+
+                // Add resize listener for responsive chart with debounce
+                let resizeTimeout;
+                window.addEventListener("resize", () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (this.currentChartData) {
+                            this.createChart(this.currentChartData);
+                        }
+                    }, 250); // Debounce for 250ms
+                });
             }
 
             setDefaultDates() {
@@ -432,9 +443,12 @@
                 this.populateTables(data);
                 this.showDashboard();
 
+                // Store current chart data for resize handling
+                this.currentChartData = data.daily_analysis.daily_breakdown;
+
                 // Small delay to ensure container is properly sized before creating chart
                 setTimeout(() => {
-                    this.createChart(data.daily_analysis.daily_breakdown);
+                    this.createChart(this.currentChartData);
                 }, 100);
             }
 
