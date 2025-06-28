@@ -914,17 +914,31 @@
                 const minFreq = Math.min(...frequencies);
                 const maxFreq = Math.max(...frequencies);
 
-                // Color palette
-                const colors = [
-                    "#667eea",
-                    "#764ba2",
-                    "#4facfe",
-                    "#00f2fe",
-                    "#667eea",
-                    "#764ba2",
-                    "#4facfe",
-                    "#00f2fe",
+                // Heat map color palette (cool to warm) - optimized for readability
+                const heatMapColors = [
+                    "#1f4e79", // Dark blue (lowest frequency)
+                    "#2e5984", // Blue
+                    "#4a90e2", // Medium blue
+                    "#7bb3d3", // Light blue
+                    "#a8d5e5", // Very light blue
+                    "#f7dc6f", // Yellow
+                    "#f39c12", // Orange
+                    "#e67e22", // Dark orange
+                    "#e74c3c", // Red
+                    "#c0392b", // Dark red
+                    "#922b21", // Very dark red (highest frequency)
                 ];
+
+                // Function to get color based on frequency
+                function getHeatMapColor(frequency) {
+                    const normalizedFreq = (frequency - minFreq) / (maxFreq - minFreq);
+                    const colorIndex = Math.floor(
+                        normalizedFreq * (heatMapColors.length - 1)
+                    );
+                    return heatMapColors[
+                        Math.min(colorIndex, heatMapColors.length - 1)
+                    ];
+                }
 
                 // Sort words by frequency (highest first)
                 const sortedWords = [...wordCloudData].sort(
@@ -1015,11 +1029,7 @@
                         14 + ((frequency - minFreq) / (maxFreq - minFreq)) * 46;
 
                     // Calculate color based on frequency
-                    const colorIndex = Math.floor(
-                        ((frequency - minFreq) / (maxFreq - minFreq)) *
-                        (colors.length - 1)
-                    );
-                    const color = colors[colorIndex];
+                    const color = getHeatMapColor(frequency);
 
                     // Create temporary element to measure text dimensions
                     const tempElement = document.createElement("div");
