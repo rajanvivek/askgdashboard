@@ -484,28 +484,16 @@
 
                 // Add resize listener for responsive chart and word cloud with debounce
                 let resizeTimeout;
-                let lastWindowWidth = window.innerWidth;
-                let lastWindowHeight = window.innerHeight;
-
                 window.addEventListener("resize", () => {
-                    // Only redraw if the window dimensions actually changed
-                    if (
-                        window.innerWidth !== lastWindowWidth ||
-                        window.innerHeight !== lastWindowHeight
-                    ) {
-                        lastWindowWidth = window.innerWidth;
-                        lastWindowHeight = window.innerHeight;
-
-                        clearTimeout(resizeTimeout);
-                        resizeTimeout = setTimeout(() => {
-                            if (this.currentChartData) {
-                                this.createChart(this.currentChartData);
-                            }
-                            if (this.currentWordCloudData) {
-                                this.createWordCloud(this.currentWordCloudData);
-                            }
-                        }, 250); // Debounce for 250ms
-                    }
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (this.currentChartData) {
+                            this.createChart(this.currentChartData);
+                        }
+                        if (this.currentWordCloudData) {
+                            this.createWordCloud(this.currentWordCloudData);
+                        }
+                    }, 250); // Debounce for 250ms
                 });
             }
 
